@@ -9,6 +9,7 @@ import com.saurabh.productservice.models.Product;
 import com.saurabh.productservice.repository.CategoryRepository;
 import com.saurabh.productservice.repository.ProductRepository;
 import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -22,9 +23,11 @@ public class ProductServiceImpl implements ProductService{
 
     private ProductRepository productRepository;
     private CategoryRepository categoryRepository;
-    public ProductServiceImpl(ProductRepository productRepository , CategoryRepository categoryRepository){
+    private EntityManager entityManager;
+    public ProductServiceImpl(ProductRepository productRepository , CategoryRepository categoryRepository, EntityManager entityManager){
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
+        this.entityManager = entityManager;
     }
 
     private GenericProductDto convertProductToGenericProductDto(Product product){
@@ -111,21 +114,58 @@ public class ProductServiceImpl implements ProductService{
        return genericResponseHandler;
     }
 
-    @Override
-    public GenericResponseHandler<GenericProductDto> updateProduct(GenericProductDto genericProductDto) throws NotFoundException, IncompleteDetailsException {
-        if(genericProductDto.getId() == null){
-            throw new IncompleteDetailsException("Please provide the product id which you want to update");
-        }
-        Optional<Product> productOptional = productRepository.findById(genericProductDto.getId());
-        if(productOptional.isEmpty()){
-            throw new NotFoundException("No product is available with id " + genericProductDto.getId());
-        }
-        Product product = convertGenericProductDtoToProductDto(genericProductDto);
-        productRepository.save(product);
-        GenericResponseHandler<GenericProductDto> genericResponseHandler = new GenericResponseHandler<>();
-        genericResponseHandler.setData(genericProductDto);
-        genericResponseHandler.setMessage("Product updated sucessfully");
-        genericResponseHandler.setHttpStatus(HttpStatus.OK);
-        return genericResponseHandler;
+//    @Override
+//    @Transactional
+//    public GenericResponseHandler<GenericProductDto> updateProduct(GenericProductDto genericProductDto) throws NotFoundException, IncompleteDetailsException {
+//        if(genericProductDto.getId() == null){
+//            throw new IncompleteDetailsException("Please provide the product id which you want to update");
+//        }
+//        Optional<Product> productOptional = productRepository.findById(genericProductDto.getId());
+//        if(productOptional.isEmpty()){
+//            throw new NotFoundException("No product is available with id " + genericProductDto.getId());
+//        }
+//        Product product = convertGenericProductDtoToProductDto(genericProductDto);
+//        productRepository.save(product);
+//        GenericResponseHandler<GenericProductDto> genericResponseHandler = new GenericResponseHandler<>();
+//        genericResponseHandler.setData(genericProductDto);
+//        genericResponseHandler.setMessage("Product updated sucessfully");
+//        genericResponseHandler.setHttpStatus(HttpStatus.OK);
+//        return genericResponseHandler;
+//    }
+@Override
+public GenericResponseHandler<GenericProductDto> updateProduct(GenericProductDto genericProductDto) throws NotFoundException, IncompleteDetailsException {
+    if (genericProductDto.getId() == null) {
+        throw new IncompleteDetailsException("Please provide the product id which you want to update");
     }
+
+    Optional<Product> productOptional = productRepository.findById(genericProductDto.getId());
+    if (!productOptional.isPresent()) {
+        throw new NotFoundException("No product is available with id " + genericProductDto.getId());
+    }
+
+    // Fetch the existing Product entity
+    Product existingProduct = productOptional.get();
+
+
+    // Update the existing Product with new details
+    existingProduct.setTitle(genericProductDto.getTitle());
+    existingProduct.setDescription(genericProductDto.getDescription());
+    existingProduct.setPrice(genericProductDto.getPrice());
+    existingProduct.setImage(genericProductDto.getImage());
+
+    // Set the attached Category
+    existingProduct.setCategory(genericProductDto.getCategory());
+
+    // Save the updated Product
+    productRepository.save(existingProduct);
+
+    GenericResponseHandler<GenericProductDto> genericResponseHandler = new GenericResponseHandler<>();
+    genericResponseHandler.setData(genericProductDto);
+    genericResponseHandler.setMessage("Product updated successfully");
+    genericResponseHandler.setHttpStatus(HttpStatus.OK);
+    return genericResponseHandler;
+}
+
+
+
 }

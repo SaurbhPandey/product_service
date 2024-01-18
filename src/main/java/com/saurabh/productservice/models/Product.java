@@ -2,17 +2,20 @@ package com.saurabh.productservice.models;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
-@Data
+@Getter
+@Setter
 public class Product extends BaseModel{
 private String title;
 private String description;
 private String Image;
-@ManyToOne(cascade = CascadeType.PERSIST)
+@ManyToOne(cascade = {CascadeType.PERSIST , CascadeType.REMOVE , CascadeType.MERGE} , fetch = FetchType.LAZY)
 @JoinColumn(name = "category_guid")
 private Category category;
-@OneToOne(cascade = {CascadeType.PERSIST , CascadeType.REMOVE} )
+@OneToOne(cascade = {CascadeType.PERSIST , CascadeType.REMOVE , CascadeType.MERGE} , fetch = FetchType.LAZY)
 private Price price;
 }
 
